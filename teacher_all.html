@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  <title>先生用ダッシュボード</title>
+  <style>
+    :root { --main:#1a73e8; --dark:#1557b0; --light:#e8f0fe; --pale:#f8f9ff; --bg:#f0f2f5; }
+    body.mode-translation { --main:#1e8a5e; --dark:#166a48; --light:#e8f5ef; --pale:#f4fdf8; --bg:#f0f7f4; }
+    body.mode-summary     { --main:#d4610a; --dark:#b8500a; --light:#fff3e8; --pale:#fffaf5; --bg:#fff8f0; }
+    body { font-family:'Noto Sans JP',sans-serif; background-color:var(--bg); padding:20px; color:#333; line-height:1.6; transition:background-color .3s; }
+    .container { max-width:1000px; margin:0 auto; }
+    .header-card { background:white; padding:24px 30px; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); margin-bottom:20px; }
+    .shop-name { text-align:center; color:#666; font-size:14px; margin-bottom:5px; font-weight:bold; }
+    h1 { text-align:center; color:var(--main); font-size:22px; margin:0 0 20px; }
+    .filter-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    input, select, textarea { padding:9px 12px; border:2px solid #ddd; border-radius:8px; font-size:13px; font-family:'Noto Sans JP',sans-serif; outline:none; }
+    input:focus, select:focus, textarea:focus { border-color:var(--main); }
+    .btn { padding:9px 18px; background-color:var(--main); color:white; border:none; border-radius:8px; font-size:13px; cursor:pointer; font-weight:bold; font-family:'Noto Sans JP',sans-serif; }
+    .btn:hover { background-color:var(--dark); }
+    .btn:disabled { background-color:#ccc; cursor:not-allowed; }
+    .btn-csv { background-color:#2e7d9a; }
+    .btn-csv:hover { background-color:#1f5f78; }
+    .btn-back { background:none; color:var(--main); border:2px solid var(--main); padding:8px 18px; font-size:13px; border-radius:8px; margin-bottom:16px; display:inline-block; cursor:pointer; font-family:'Noto Sans JP',sans-serif; }
+    .btn-back:hover { background-color:var(--light); }
+    .school-badge { display:inline-block; background:var(--light); color:var(--main); padding:4px 14px; border-radius:20px; font-size:13px; font-weight:bold; }
+    .sys-tabs { display:flex; gap:0; margin-bottom:20px; border-radius:10px; overflow:hidden; border:2px solid #e0e0e0; }
+    .sys-tab { flex:1; padding:14px 8px; border:none; background:#fafafa; color:#888; font-size:14px; font-weight:bold; cursor:pointer; font-family:'Noto Sans JP',sans-serif; transition:all .2s; }
+    .sys-tab:hover { background:#f0f0f0; }
+    .sys-tab.on-essay { background:#1a73e8; color:white; }
+    .sys-tab.on-trans { background:#1e8a5e; color:white; }
+    .sys-tab.on-sum   { background:#d4610a; color:white; }
+    .tab-row { display:flex; gap:4px; margin-bottom:20px; }
+    .tab-btn { padding:10px 24px; border:2px solid var(--main); border-radius:8px 8px 0 0; background:white; color:var(--main); font-size:14px; font-weight:bold; cursor:pointer; font-family:'Noto Sans JP',sans-serif; }
+    .tab-btn.active { background:var(--main); color:white; }
+    .stats-row { display:flex; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
+    .stat-card { background:white; border-radius:10px; padding:16px 22px; box-shadow:0 2px 6px rgba(0,0,0,0.07); flex:1; min-width:120px; text-align:center; }
+    .stat-num { font-size:28px; font-weight:bold; color:var(--main); }
+    .stat-label { font-size:12px; color:#888; margin-top:4px; }
+    .table-card { background:white; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    th { background:var(--main); color:white; padding:11px 12px; text-align:left; font-size:13px; cursor:pointer; user-select:none; white-space:nowrap; }
+    th:hover { background:var(--dark); }
+    th .sort-icon { margin-left:4px; opacity:0.6; }
+    td { padding:11px 12px; border-bottom:1px solid #f0f0f0; font-size:13px; vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:var(--pale); }
+    .score-cell { font-weight:bold; color:var(--main); font-size:14px; }
+    .type-jte { background:#1e8a5e; color:white; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:bold; white-space:nowrap; }
+    .type-etj { background:#2e7d9a; color:white; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:bold; white-space:nowrap; }
+    .btn-detail { padding:5px 12px; background:#6c757d; color:white; border:none; border-radius:6px; font-size:12px; cursor:pointer; font-family:'Noto Sans JP',sans-serif; }
+    .btn-detail:hover { background:#495057; }
+    .btn-del { padding:5px 10px; background:#e74c3c; color:white; border:none; border-radius:6px; font-size:12px; cursor:pointer; font-family:'Noto Sans JP',sans-serif; }
+    .btn-del:hover { background:#c0392b; }
+    .loader { border:4px solid #f3f3f3; border-top:4px solid var(--main); border-radius:50%; width:30px; height:30px; animation:spin 1s linear infinite; margin:30px auto; display:none; }
+    @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+    .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; overflow-y:auto; padding:20px; box-sizing:border-box; }
+    .modal-overlay.show { display:block; }
+    .modal { background:white; border-radius:12px; max-width:650px; margin:0 auto; padding:30px; }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:2px solid #eee; padding-bottom:14px; }
+    .modal-header h2 { margin:0; color:var(--main); font-size:18px; }
+    .modal-close { background:none; border:none; font-size:24px; cursor:pointer; color:#666; }
+    .modal-meta { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+    .meta-tag { background:var(--light); color:var(--main); padding:4px 12px; border-radius:12px; font-size:13px; }
+    .topic-box { background:var(--light); padding:16px; border-radius:8px; margin-bottom:16px; color:var(--dark); border-left:5px solid var(--main); font-size:14px; }
+    .answer-box { background:#f8f9fa; padding:14px 16px; border-radius:8px; margin-bottom:16px; border-left:5px solid #78909c; font-size:13px; }
+    .answer-label { font-size:12px; color:#666; font-weight:bold; margin-bottom:6px; }
+    .section-card { background:white; border-radius:10px; padding:16px; margin-bottom:14px; box-shadow:0 2px 6px rgba(0,0,0,0.05); border:1px solid #f0f0f0; border-left:5px solid #bdc3c7; }
+    .sec-title { font-size:16px; color:#2c3e50; margin:0 0 12px; display:flex; align-items:center; border-bottom:1px dashed #f0f0f0; padding-bottom:10px; }
+    .score-badge { margin-left:auto; background-color:#f8f9fa; color:var(--main); padding:3px 12px; border-radius:20px; font-size:14px; font-weight:bold; border:1px solid #e8eaed; }
+    .card-c1 { border-left-color:#3498db; }
+    .card-c2 { border-left-color:#9b59b6; }
+    .card-c3 { border-left-color:#e67e22; }
+    .card-c4 { border-left-color:#1abc9c; }
+    .card-precheck { border-left-color:#607d8b; background-color:#f5f7f8; }
+    .card-correction { border-left-color:#e74c3c; background-color:#fffafa; }
+    .card-advice { border-left-color:#f1c40f; background-color:#fffdf5; }
+    .card-total { border-left-color:var(--main); background-color:var(--pale); text-align:center; }
+    .card-total .sec-title { justify-content:center; border-bottom:none; font-size:18px; color:var(--main); }
+    .card-good { border-left-color:#27ae60; background-color:#f4fdf8; }
+    .card-improved { border-left-color:#2ecc71; background-color:#f4fdf8; }
+    .list-item { position:relative; padding-left:18px; margin-bottom:8px; font-size:13px; }
+    .list-item::before { content:"💡"; position:absolute; left:0; font-size:11px; top:2px; }
+    .modal p { margin:6px 0; font-size:13px; }
+    .empty-msg { text-align:center; padding:40px; color:#888; }
+    #screen-login { display:block; }
+    #screen-dashboard { display:none; }
+    .login-wrap { display:flex; justify-content:center; align-items:center; min-height:80vh; }
+    .login-box { width:100%; max-width:400px; background:white; padding:40px; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.12); }
+    .login-box h1 { font-size:22px; margin-bottom:8px; text-align:center; }
+    .login-subtitle { text-align:center; color:#888; font-size:13px; margin-bottom:28px; }
+    .login-label { font-size:13px; font-weight:bold; color:#555; margin-bottom:6px; display:block; }
+    .login-input { width:100%; box-sizing:border-box; margin-bottom:16px; font-size:15px; padding:12px 14px; }
+    .login-btn { width:100%; padding:13px; font-size:16px; border-radius:8px; margin-top:4px; }
+    .login-error { color:#d93025; font-size:13px; text-align:center; margin-top:12px; display:none; }
+    .login-hint { font-size:12px; color:#aaa; text-align:center; margin-top:16px; }
+    .assignment-form { background:white; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); padding:24px; margin-bottom:20px; }
+    .assignment-form h3 { margin:0 0 16px; color:var(--main); font-size:16px; }
+    .form-row { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px; }
+    .form-row > div { display:flex; flex-direction:column; gap:4px; }
+    .form-row label { font-size:12px; font-weight:bold; color:#555; }
+    .assignment-list { background:white; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); overflow:hidden; }
+    .assignment-list h3 { margin:0; padding:16px 20px; color:var(--main); font-size:16px; border-bottom:1px solid #eee; }
+    .assignment-item { display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid #f0f0f0; font-size:13px; }
+    .assignment-item:last-child { border-bottom:none; }
+    .assignment-item:hover { background:var(--pale); }
+    .assignment-topic { flex:1; color:#333; }
+    .assignment-meta { color:#888; font-size:12px; white-space:nowrap; }
+    .assignment-empty { text-align:center; padding:40px; color:#888; font-size:14px; }
+    .type-label { font-size:11px; padding:2px 8px; border-radius:10px; font-weight:bold; }
+    .type-label-jte { background:#e8f5ef; color:#1e8a5e; }
+    .type-label-etj { background:#e3f2fd; color:#2e7d9a; }
+    .flag-ok { display:inline-block; background:#e8f5e9; color:#2e7d32; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:bold; }
+    .flag-ng { display:inline-block; background:#ffebee; color:#c62828; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:bold; }
+    .hide { display:none !important; }
+  </style>
+</head>
+<body class="mode-essay">
+
+  <div id="screen-login">
+    <div class="login-wrap">
+      <div class="login-box">
+        <div class="shop-name">ICT・AI教材専門店/池田山商店</div>
+        <h1>👨‍🏫 先生用ダッシュボード</h1>
+        <p class="login-subtitle">英作文／和文英訳・英文和訳／要約<br>学校コードとパスワードを入力してください</p>
+        <label class="login-label">学校コード</label>
+        <input class="login-input" type="text" id="schoolCodeInput" placeholder="例: 46508K" />
+        <label class="login-label">パスワード</label>
+        <input class="login-input" type="password" id="passwordInput" placeholder="パスワードを入力" />
+        <button class="btn login-btn" id="loginBtn" onclick="doLogin()">ログイン</button>
+        <div class="login-error" id="loginError">学校コードまたはパスワードが違います</div>
+        <p class="login-hint">※学校コード・パスワードは管理者から配布されます</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-dashboard">
+    <div class="container">
+      <div class="header-card">
+        <div class="shop-name">ICT・AI教材専門店/池田山商店</div>
+        <h1 id="pageTitle">👨‍🏫 先生用ダッシュボード</h1>
+        <div style="text-align:center;margin-bottom:16px">
+          <span class="school-badge" id="schoolBadge"></span>
+          <button class="btn-back" onclick="doLogout()" style="margin-left:10px">← ログアウト</button>
+        </div>
+
+        <div class="sys-tabs" id="sysTabs">
+          <button class="sys-tab" id="tab-essay"       onclick="switchSystem('essay')">✏️ 英作文</button>
+          <button class="sys-tab" id="tab-translation" onclick="switchSystem('translation')">📝 和文英訳・英文和訳</button>
+          <button class="sys-tab" id="tab-summary"     onclick="switchSystem('summary')">📖 要約</button>
+        </div>
+
+        <div class="tab-row">
+          <button class="tab-btn active" id="innerTabData" onclick="switchTab('submissions')">📊 提出一覧</button>
+          <button class="tab-btn" id="innerTabAssign" onclick="switchTab('assignments')">📋 課題管理</button>
+        </div>
+
+        <div id="filterArea">
+          <div class="filter-row">
+            <input type="text" id="filterName" placeholder="生徒名・番号で絞り込み" style="flex:1;min-width:120px">
+            <input type="text" id="filterSeat" placeholder="出席番号" style="width:100px">
+            <select id="filterGrade"><option value="">学年：すべて</option></select>
+            <select id="filterClass"><option value="">クラス：すべて</option></select>
+            <select id="filterType" class="trans-only"><option value="">種別：すべて</option><option value="和文英訳">和文英訳</option><option value="英文和訳">英文和訳</option></select>
+          </div>
+          <div class="filter-row" style="margin-top:8px">
+            <select id="filterTopicSelect" style="flex:1;min-width:160px"><option value="">課題：すべて</option></select>
+            <input type="text" id="filterTopicText" placeholder="課題テキストで絞り込み" style="flex:2;min-width:160px">
+            <button class="btn" onclick="loadData()">🔄 更新</button>
+            <button class="btn btn-csv" onclick="exportCSV()">📥 CSV出力</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tabContent-submissions">
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-num" id="statTotal">-</div><div class="stat-label">総提出数</div></div>
+          <div class="stat-card"><div class="stat-num" id="statDone">-</div><div class="stat-label">添削済み</div></div>
+          <div class="stat-card"><div class="stat-num" id="statPending">-</div><div class="stat-label">添削中</div></div>
+          <div class="stat-card"><div class="stat-num" id="statAvg">-</div><div class="stat-label">平均点</div></div>
+        </div>
+        <div class="table-card">
+          <div class="loader" id="loader"></div>
+          <table>
+            <thead>
+              <tr>
+                <th onclick="sortBy('submitted_at')">提出日時 <span class="sort-icon" id="sort-submitted_at"></span></th>
+                <th onclick="sortBy('student_id')">生徒番号 <span class="sort-icon" id="sort-student_id"></span></th>
+                <th onclick="sortBy('student_name')">氏名 <span class="sort-icon" id="sort-student_name"></span></th>
+                <th onclick="sortBy('grade')">学年 <span class="sort-icon" id="sort-grade"></span></th>
+                <th onclick="sortBy('class_name')">クラス <span class="sort-icon" id="sort-class_name"></span></th>
+                <th onclick="sortBy('seat_number')">出席番号 <span class="sort-icon" id="sort-seat_number"></span></th>
+                <th class="trans-only" onclick="sortBy('translation_type')">種別 <span class="sort-icon" id="sort-translation_type"></span></th>
+                <th onclick="sortBy('topic')">課題 <span class="sort-icon" id="sort-topic"></span></th>
+                <th onclick="sortBy('score')">点数 <span class="sort-icon" id="sort-score"></span></th>
+                <th>詳細</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr><td colspan="10" class="empty-msg">読み込み中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="tabContent-assignments" style="display:none">
+        <div class="assignment-form">
+          <h3 id="assignFormTitle">➕ 新しい課題を登録</h3>
+          <div class="form-row">
+            <div>
+              <label>学年（任意）</label>
+              <select id="assignGrade" style="min-width:90px">
+                <option value="">すべて</option>
+                <option value="高3">高3</option>
+                <option value="高2">高2</option>
+                <option value="高1">高1</option>
+                <option value="中3">中3</option>
+                <option value="中2">中2</option>
+                <option value="中1">中1</option>
+              </select>
+            </div>
+            <div>
+              <label>クラス（任意）</label>
+              <input type="text" id="assignClass" placeholder="例：A、1組" style="width:100px">
+            </div>
+          </div>
+          <div style="margin-bottom:12px">
+            <label id="assignTopicLabel" style="font-size:12px;font-weight:bold;color:#555;margin-bottom:4px;display:block">お題<span style="color:#d93025;margin-left:4px;font-size:11px">※必須</span></label>
+            <textarea id="assignTopic" rows="4" placeholder="お題を入力してください" style="width:100%;resize:vertical"></textarea>
+          </div>
+          <button class="btn" onclick="addAssignment()">登録する</button>
+          <div id="assignError" style="color:#d93025;font-size:13px;margin-top:8px;display:none"></div>
+        </div>
+
+        <div class="assignment-list">
+          <h3 id="assignListTitle">📋 登録済みの課題一覧</h3>
+          <div id="assignmentListBody">
+            <div class="assignment-empty">読み込み中...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">添削結果詳細</h2>
+        <button class="modal-close" onclick="closeModalDirect()">✕</button>
+      </div>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <script>
+    // ===== 2つのSupabaseプロジェクト =====
+    const PROJECTS = {
+      essay: {
+        url: "https://ooeqzprvqklzsehndqle.supabase.co",
+        key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vZXF6cHJ2cWtsenNlaG5kcWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MDQxNDksImV4cCI6MjA4ODk4MDE0OX0.LHEBDwPIe9h6FwFozg5gIEyETKcX5OTCkMK_KXzrLDY",
+      },
+      wayaku: {
+        url: "https://eooowdjpuljbvybscfhu.supabase.co",
+        key: "sb_publishable_chr50y8g5RPtFCtgW3wHFQ_mrLFn2I2",
+      }
+    };
+
+    const SYS = {
+      essay:       { proj:'essay',  label:'✏️ 英作文 ダッシュボード',            dataAction:'teacher_data',         topicLabel:'お題',           answerLabel:'提出した英作文', assignLabel:'お題',            csv:'英作文_添削データ.csv' },
+      translation: { proj:'wayaku', label:'📝 和文英訳・英文和訳 ダッシュボード', dataAction:'teacher_data',         topicLabel:'原文',           answerLabel:'提出した解答',   assignLabel:'問題文',          csv:'和文英訳_添削データ.csv' },
+      summary:     { proj:'wayaku', label:'📖 要約 ダッシュボード',              dataAction:'teacher_data_summary', topicLabel:'原文（要約対象）', answerLabel:'提出した要約',   assignLabel:'原文（要約対象）', csv:'要約_添削データ.csv' },
+    };
+
+    let allData = [];
+    let currentSchoolCode = "";
+    let currentSchoolPass = "";
+    let currentSystem = "essay";
+    let currentTab = "submissions";
+    let available = { essay:false, wayaku:false };
+    let sortKey = 'submitted_at';
+    let sortAsc = false;
+
+    async function api(projKey, payload) {
+      const p = PROJECTS[projKey];
+      const res = await fetch(`${p.url}/functions/v1/api`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', Authorization:"Bearer " + p.key },
+        body: JSON.stringify(payload)
+      });
+      return await res.json();
+    }
+
+    function cfg() { return SYS[currentSystem]; }
+    function isTrans() { return currentSystem === 'translation'; }
+
+    // ===== ログイン：両方のプロジェクトを試す =====
+    async function doLogin() {
+      const code = document.getElementById('schoolCodeInput').value.trim();
+      const pass = document.getElementById('passwordInput').value.trim();
+      if (!code || !pass) { alert("学校コードとパスワードを入力してください"); return; }
+      const btn = document.getElementById('loginBtn');
+      const errDiv = document.getElementById('loginError');
+      btn.disabled = true; btn.textContent = '確認中...'; errDiv.style.display = 'none';
+      try {
+        const [rEssay, rWayaku] = await Promise.all([
+          api('essay',  { action:'teacher_login', code, password:pass }).catch(() => ({ok:false})),
+          api('wayaku', { action:'teacher_login', code, password:pass }).catch(() => ({ok:false})),
+        ]);
+        available.essay  = !!rEssay.ok;
+        available.wayaku = !!rWayaku.ok;
+
+        if (!available.essay && !available.wayaku) {
+          errDiv.style.display = 'block';
+          return;
+        }
+        const schoolName = rEssay.schoolName || rWayaku.schoolName || code;
+        currentSchoolCode = code;
+        currentSchoolPass = pass;
+        document.getElementById('schoolBadge').textContent = "🏫 " + schoolName;
+
+        // 使えるタブだけ表示
+        document.getElementById('tab-essay').style.display       = available.essay  ? 'block' : 'none';
+        document.getElementById('tab-translation').style.display = available.wayaku ? 'block' : 'none';
+        document.getElementById('tab-summary').style.display     = available.wayaku ? 'block' : 'none';
+        document.getElementById('sysTabs').style.display = 'flex';
+
+        document.getElementById('screen-login').style.display = 'none';
+        document.getElementById('screen-dashboard').style.display = 'block';
+        switchSystem(available.essay ? 'essay' : 'translation');
+      } catch(e) { alert("通信エラー: " + e.message); }
+      finally { btn.disabled = false; btn.textContent = 'ログイン'; }
+    }
+
+    function doLogout() {
+      currentSchoolCode = ""; currentSchoolPass = ""; allData = [];
+      available = { essay:false, wayaku:false };
+      document.getElementById('schoolCodeInput').value = '';
+      document.getElementById('passwordInput').value = '';
+      document.getElementById('screen-dashboard').style.display = 'none';
+      document.getElementById('screen-login').style.display = 'block';
+    }
+
+    function switchSystem(sys) {
+      currentSystem = sys;
+      document.body.className = 'mode-' + sys;
+      ['essay','translation','summary'].forEach(k => {
+        const el = document.getElementById('tab-' + k);
+        const on = { essay:'on-essay', translation:'on-trans', summary:'on-sum' }[k];
+        el.className = 'sys-tab' + (k === sys ? ' ' + on : '');
+      });
+      document.getElementById('pageTitle').textContent = cfg().label;
+      document.querySelectorAll('.trans-only').forEach(el => el.classList.toggle('hide', sys !== 'translation'));
+      document.getElementById('assignFormTitle').textContent = `➕ 新しい${cfg().assignLabel}を登録`;
+      document.getElementById('assignListTitle').textContent = `📋 登録済みの${cfg().assignLabel}一覧`;
+      document.getElementById('assignTopicLabel').innerHTML = cfg().assignLabel + '<span style="color:#d93025;margin-left:4px;font-size:11px">※必須</span>';
+      document.getElementById('assignTopic').placeholder = cfg().assignLabel + 'を入力してください';
+      document.getElementById('assignTopic').rows = sys === 'summary' ? 8 : 4;
+      ['filterName','filterSeat','filterTopicText'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('filterType').value = '';
+      allData = [];
+      if (currentTab === 'submissions') loadData(); else loadAssignments();
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('innerTabData').classList.toggle('active', tab === 'submissions');
+      document.getElementById('innerTabAssign').classList.toggle('active', tab === 'assignments');
+      document.getElementById('tabContent-submissions').style.display = tab === 'submissions' ? 'block' : 'none';
+      document.getElementById('tabContent-assignments').style.display = tab === 'assignments' ? 'block' : 'none';
+      document.getElementById('filterArea').style.display = tab === 'submissions' ? 'block' : 'none';
+      if (tab === 'assignments') loadAssignments();
+    }
+
+    async function loadData() {
+      const loader = document.getElementById('loader');
+      loader.style.display = 'block';
+      document.getElementById('tableBody').innerHTML = '';
+      try {
+        const j = await api(cfg().proj, {
+          action: cfg().dataAction, code: currentSchoolCode, password: currentSchoolPass
+        });
+        allData = j.submissions || [];
+        allData.forEach(row => { row._score = extractScoreNum(row.feedback); });
+        buildDropdowns(allData);
+        renderTable();
+        updateStats(allData);
+      } catch(e) {
+        const cs = isTrans() ? 10 : 9;
+        document.getElementById('tableBody').innerHTML = `<tr><td colspan="${cs}" class="empty-msg" style="color:red">読み込みエラー: ${e.message}</td></tr>`;
+      } finally { loader.style.display = 'none'; }
+    }
+
+    function buildDropdowns(data) {
+      const grades  = [...new Set(data.map(r => r.grade||'').filter(Boolean))].sort();
+      const classes = [...new Set(data.map(r => r.class_name||'').filter(Boolean))].sort();
+      const topics  = [...new Set(data.map(r => r.topic||'').filter(Boolean))].sort();
+      const gradeEl = document.getElementById('filterGrade');
+      const classEl = document.getElementById('filterClass');
+      const topicEl = document.getElementById('filterTopicSelect');
+      const cg = gradeEl.value, cc = classEl.value, ct = topicEl.value;
+      gradeEl.innerHTML = '<option value="">学年：すべて</option>' + grades.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+      classEl.innerHTML = '<option value="">クラス：すべて</option>' + classes.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+      topicEl.innerHTML = '<option value="">課題：すべて</option>' + topics.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t.length>30 ? t.substring(0,30)+'…' : t)}</option>`).join('');
+      gradeEl.value = cg; classEl.value = cc; topicEl.value = ct;
+    }
+
+    function renderTable() {
+      const nameFilter  = document.getElementById('filterName').value.trim().toLowerCase();
+      const seatFilter  = document.getElementById('filterSeat').value.trim().toLowerCase();
+      const gradeFilter = document.getElementById('filterGrade').value;
+      const classFilter = document.getElementById('filterClass').value;
+      const typeFilter  = isTrans() ? document.getElementById('filterType').value : '';
+      const topicSelect = document.getElementById('filterTopicSelect').value;
+      const topicText   = document.getElementById('filterTopicText').value.trim().toLowerCase();
+
+      let filtered = allData.filter(row => {
+        if (nameFilter  && !(row.student_name||'').toLowerCase().includes(nameFilter) && !(row.student_id||'').toLowerCase().includes(nameFilter)) return false;
+        if (seatFilter  && !(row.seat_number||'').toLowerCase().includes(seatFilter)) return false;
+        if (gradeFilter && row.grade !== gradeFilter) return false;
+        if (classFilter && row.class_name !== classFilter) return false;
+        if (typeFilter  && row.translation_type !== typeFilter) return false;
+        if (topicSelect && row.topic !== topicSelect) return false;
+        if (topicText   && !(row.topic||'').toLowerCase().includes(topicText)) return false;
+        return true;
+      });
+
+      filtered.sort((a, b) => {
+        let va = a[sortKey === 'score' ? '_score' : sortKey] ?? '';
+        let vb = b[sortKey === 'score' ? '_score' : sortKey] ?? '';
+        if (sortKey === 'score') { va = va ?? -1; vb = vb ?? -1; }
+        if (va < vb) return sortAsc ? -1 : 1;
+        if (va > vb) return sortAsc ? 1 : -1;
+        return 0;
+      });
+
+      const colspan = isTrans() ? 10 : 9;
+      if (filtered.length === 0) {
+        document.getElementById('tableBody').innerHTML = `<tr><td colspan="${colspan}" class="empty-msg">データがありません</td></tr>`;
+        window._filteredData = [];
+        return;
+      }
+      window._filteredData = filtered;
+
+      document.getElementById('tableBody').innerHTML = filtered.map((row, i) => {
+        const scoreDisplay = row._score !== null ? `<span class="score-cell">${row._score}点</span>` : '<span style="color:#aaa">添削中</span>';
+        let typeCell = '';
+        if (isTrans()) {
+          const t = row.translation_type === '和文英訳' ? `<span class="type-jte">和文英訳</span>`
+                  : row.translation_type === '英文和訳' ? `<span class="type-etj">英文和訳</span>`
+                  : escapeHtml(row.translation_type||'');
+          typeCell = `<td class="trans-only">${t}</td>`;
+        }
+        return `<tr>
+          <td>${formatDate(row.submitted_at)}</td>
+          <td>${escapeHtml(row.student_id||'')}</td>
+          <td>${escapeHtml(row.student_name||'')}</td>
+          <td>${escapeHtml(row.grade||'')}</td>
+          <td>${escapeHtml(row.class_name||'')}</td>
+          <td>${escapeHtml(row.seat_number||'')}</td>
+          ${typeCell}
+          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(row.topic||'')}">${escapeHtml((row.topic||'').length>20 ? row.topic.substring(0,20)+'…' : row.topic||'')}</td>
+          <td>${scoreDisplay}</td>
+          <td><button class="btn-detail" onclick="showDetail(${i})">詳細</button></td>
+        </tr>`;
+      }).join('');
+
+      const doneRows = filtered.filter(r => r._score !== null);
+      const avg = doneRows.length ? Math.round(doneRows.reduce((s,r) => s + r._score, 0) / doneRows.length) : '-';
+      document.getElementById('statAvg').textContent = avg === '-' ? '-' : avg + '点';
+    }
+
+    function sortBy(key) {
+      if (sortKey === key) { sortAsc = !sortAsc; } else { sortKey = key; sortAsc = true; }
+      document.querySelectorAll('.sort-icon').forEach(el => el.textContent = '');
+      const icon = document.getElementById('sort-' + key);
+      if (icon) icon.textContent = sortAsc ? '▲' : '▼';
+      renderTable();
+    }
+
+    function updateStats(data) {
+      document.getElementById('statTotal').textContent   = data.length;
+      document.getElementById('statDone').textContent    = data.filter(r => r.status === 'done').length;
+      document.getElementById('statPending').textContent = data.filter(r => r.status === 'pending').length;
+      const scored = data.filter(r => r._score !== null);
+      const avg = scored.length ? Math.round(scored.reduce((s,r) => s + r._score, 0) / scored.length) : '-';
+      document.getElementById('statAvg').textContent = avg === '-' ? '-' : avg + '点';
+    }
+
+    function showDetail(index) {
+      const row = window._filteredData[index];
+      if (!row) return;
+      document.getElementById('modalTitle').textContent = cfg().label.split(' ')[0] + ' 添削結果詳細';
+      let typeTag = '';
+      if (isTrans() && row.translation_type) {
+        const c = row.translation_type === '和文英訳' ? '#1e8a5e' : '#2e7d9a';
+        typeTag = `<span class="meta-tag" style="background:${c};color:white">${escapeHtml(row.translation_type)}</span>`;
+      }
+      let html = `
+        <div class="modal-meta">
+          <span class="meta-tag">👤 ${escapeHtml(row.student_name||'')}</span>
+          <span class="meta-tag">🔢 ${escapeHtml(row.student_id||'')}</span>
+          ${row.seat_number ? `<span class="meta-tag">出席番号 ${escapeHtml(row.seat_number)}</span>` : ''}
+          ${row.grade ? `<span class="meta-tag">${escapeHtml(row.grade)}</span>` : ''}
+          ${row.class_name ? `<span class="meta-tag">${escapeHtml(row.class_name)}</span>` : ''}
+          ${typeTag}
+          <span class="meta-tag">📅 ${formatDate(row.submitted_at)}</span>
+          ${row._score !== null ? `<span class="meta-tag" style="font-weight:bold">🏆 ${row._score}点</span>` : ''}
+        </div>
+        <div class="topic-box">📄 <strong>${cfg().topicLabel}：</strong>${escapeHtml(row.topic||'').replace(/\n/g,'<br>')}</div>
+        <div class="answer-box"><div class="answer-label">✏️ ${cfg().answerLabel}</div>${escapeHtml(row.answer||'').replace(/\n/g,'<br>')}</div>
+      `;
+      if (!row.feedback || row.status !== 'done') {
+        html += `<div style="text-align:center;padding:30px;color:#f57f17">⏳ 現在添削中です</div>`;
+      } else {
+        html += currentSystem === 'essay'   ? parseEssayFeedback(row.feedback)
+              : currentSystem === 'summary' ? parseSummaryFeedback(row.feedback)
+              : parseTransFeedback(row.feedback);
+      }
+      document.getElementById('modalContent').innerHTML = html;
+      document.getElementById('modalOverlay').classList.add('show');
+    }
+
+    function closeModal(e) { if (e.target === document.getElementById('modalOverlay')) closeModalDirect(); }
+    function closeModalDirect() { document.getElementById('modalOverlay').classList.remove('show'); }
+
+    async function loadAssignments() {
+      const body = document.getElementById('assignmentListBody');
+      body.innerHTML = '<div class="assignment-empty">読み込み中...</div>';
+      try {
+        const payload = { action:'teacher_assignments', code: currentSchoolCode, password: currentSchoolPass };
+        if (cfg().proj === 'wayaku') payload.systemType = currentSystem;
+        const j = await api(cfg().proj, payload);
+        const data = j.assignments || [];
+        if (!data.length) {
+          body.innerHTML = `<div class="assignment-empty">登録されている${cfg().assignLabel}はありません</div>`;
+          return;
+        }
+        body.innerHTML = data.map(a => {
+          const meta = [a.grade, a.class_name].filter(Boolean).join(' ');
+          let label = '';
+          if (isTrans()) {
+            const isJa = /[\u3000-\u9fff]/.test(a.topic);
+            label = isJa ? '<span class="type-label type-label-jte">和文英訳</span> '
+                         : '<span class="type-label type-label-etj">英文和訳</span> ';
+          }
+          const preview = a.topic.length > 80 ? a.topic.substring(0,80)+'…' : a.topic;
+          return `<div class="assignment-item">
+            <div class="assignment-topic">${label}${escapeHtml(preview)}</div>
+            ${meta ? `<div class="assignment-meta">${escapeHtml(meta)}</div>` : ''}
+            <div class="assignment-meta">${formatDate(a.created_at)}</div>
+            <button class="btn-del" onclick="deleteAssignment('${a.id}')">削除</button>
+          </div>`;
+        }).join('');
+      } catch(e) {
+        body.innerHTML = `<div class="assignment-empty" style="color:red">読み込みエラー: ${e.message}</div>`;
+      }
+    }
+
+    async function addAssignment() {
+      const topic     = document.getElementById('assignTopic').value.trim();
+      const grade     = document.getElementById('assignGrade').value;
+      const className = document.getElementById('assignClass').value.trim();
+      const errDiv    = document.getElementById('assignError');
+      errDiv.style.display = 'none';
+      if (!topic) { errDiv.textContent = cfg().assignLabel + 'を入力してください'; errDiv.style.display = 'block'; return; }
+      try {
+        const payload = {
+          action:'assignment_add', code: currentSchoolCode, password: currentSchoolPass,
+          topic, grade: grade||null, className: className||null
+        };
+        if (cfg().proj === 'wayaku') payload.systemType = currentSystem;
+        const j = await api(cfg().proj, payload);
+        if (!j.ok) throw new Error(j.error || "登録失敗");
+        document.getElementById('assignTopic').value = '';
+        document.getElementById('assignGrade').value = '';
+        document.getElementById('assignClass').value = '';
+        loadAssignments();
+      } catch(e) {
+        errDiv.textContent = '登録エラー: ' + e.message;
+        errDiv.style.display = 'block';
+      }
+    }
+
+    async function deleteAssignment(id) {
+      if (!confirm(`この${cfg().assignLabel}を削除しますか？`)) return;
+      try {
+        await api(cfg().proj, { action:'assignment_delete', code: currentSchoolCode, password: currentSchoolPass, id });
+        loadAssignments();
+      } catch(e) { alert('削除エラー: ' + e.message); }
+    }
+
+    function exportCSV() {
+      const data = window._filteredData || [];
+      if (!data.length) { alert('データがありません'); return; }
+      let headers, rows;
+      if (isTrans()) {
+        headers = ['提出日時','生徒番号','氏名','学年','クラス','出席番号','種別','課題','解答','点数'];
+        rows = data.map(r => [formatDate(r.submitted_at), r.student_id||'', r.student_name||'', r.grade||'', r.class_name||'', r.seat_number||'', r.translation_type||'', r.topic||'', r.answer||'', r._score !== null ? r._score : '']);
+      } else {
+        headers = ['提出日時','生徒番号','氏名','学年','クラス','出席番号','課題','解答','点数'];
+        rows = data.map(r => [formatDate(r.submitted_at), r.student_id||'', r.student_name||'', r.grade||'', r.class_name||'', r.seat_number||'', r.topic||'', r.answer||'', r._score !== null ? r._score : '']);
+      }
+      const csvRows = rows.map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+      const csv  = '\uFEFF' + [headers.join(','), ...csvRows].join('\n');
+      const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = cfg().csv; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function extractScoreNum(feedback) {
+      if (!feedback) return null;
+      const m = feedback.match(/合計\((\d+)\s*\/\s*\d+点\)/);
+      if (m) return parseInt(m[1]);
+      const m2 = feedback.match(/合計.*?(\d+)\s*\/\s*(\d+)点/);
+      if (m2) return parseInt(m2[1]);
+      return null;
+    }
+
+    function formatDate(str) {
+      if (!str) return '';
+      const d = new Date(str);
+      return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+
+    function parseEssayFeedback(text) {
+      if (!text) return "まだ添削されていません。";
+      const lines = text.split('\n');
+      let html = '', inCard = false;
+      for (let line of lines) {
+        line = line.trim(); if (line === '') continue;
+        let esc = escapeHtml(line);
+        if (line.startsWith('## ')) {
+          if (inCard) html += '</div>'; inCard = true;
+          if      (line.includes('1. 内容・構成面'))            { let s=esc.split(':')[1]||''; html+=`<div class="section-card card-c1"><h3 class="sec-title">📝 内容・構成面 <span class="score-badge">${s}</span></h3>`; }
+          else if (line.includes('2. 条件面'))                  { let s=esc.split(':')[1]||''; html+=`<div class="section-card card-c2"><h3 class="sec-title">🎯 条件面 <span class="score-badge">${s}</span></h3>`; }
+          else if (line.includes('3. 文法・正確性'))             { let s=esc.split(':')[1]||''; html+=`<div class="section-card card-c3"><h3 class="sec-title">📖 文法・正確性 <span class="score-badge">${s}</span></h3>`; }
+          else if (line.includes('4. 語彙・表現力'))             { let s=esc.split(':')[1]||''; html+=`<div class="section-card card-c4"><h3 class="sec-title">💡 語彙・表現力 <span class="score-badge">${s}</span></h3>`; }
+          else if (line.includes('5. 文法面での具体的な訂正'))    { html+=`<div class="section-card card-correction"><h3 class="sec-title">🛠️ 訂正ポイントと解説</h3>`; }
+          else if (line.includes('6. 要点を絞ったフィードバック')) { html+=`<div class="section-card card-advice"><h3 class="sec-title">✨ 次へ向けたアドバイス</h3>`; }
+          else if (line.includes('7. 合計点'))                   { html+=`<div class="section-card card-total"><h3 class="sec-title">🏆 総合評価</h3>`; }
+          else if (line.includes('8. 改善案リスト'))              { html+=`<div class="section-card card-improved"><h3 class="sec-title">🗽 改善案リスト（模範解答例）</h3>`; }
+          else { html+=`<div class="section-card"><h3 class="sec-title">${esc.substring(3)}</h3>`; }
+        } else if (line.startsWith('- ')) {
+          html += `<div class="list-item">${esc.substring(2)}</div>`;
+        } else { html += `<p>${esc}</p>`; }
+      }
+      if (inCard) html += '</div>';
+      return html;
+    }
+
+    function parseTransFeedback(text) {
+      if (!text) return "まだ添削されていません。";
+      const lines = text.split('\n');
+      let html = '', inCard = false;
+      for (let line of lines) {
+        line = line.trim(); if (line === '') continue;
+        let esc = escapeHtml(line);
+        if (line.startsWith('## ')) {
+          if (inCard) html += '</div>'; inCard = true;
+          if      (line.includes('1. 意味の正確さ'))   { let s=esc.split(':')[1]||''; html+=`<div class="section-card card-c1"><h3 class="sec-title">🎯 意味の正確さ <span class="score-badge">${s}</span></h3>`; }
+          else if (line.includes('2. 文法・正確性'))   { let s=esc.split(':')[1]||''; html+=`<div class="section-card card-c3"><h3 class="sec-title">📖 文法・正確性 <span class="score-badge">${s}</span></h3>`; }
+          else if (line.includes('3. 語彙の適切さ'))   { let s=esc.split(':')[1]||''; html+=`<div class="section-card card-c4"><h3 class="sec-title">📚 語彙の適切さ <span class="score-badge">${s}</span></h3>`; }
+          else if (line.includes('4. 自然な表現'))     { let s=esc.split(':')[1]||''; html+=`<div class="section-card card-c2"><h3 class="sec-title">🌿 自然な表現 <span class="score-badge">${s}</span></h3>`; }
+          else if (line.includes('5. 具体的な訂正'))   { html+=`<div class="section-card card-correction"><h3 class="sec-title">🛠️ 訂正ポイントと解説</h3>`; }
+          else if (line.includes('6. 合計点'))         { html+=`<div class="section-card card-total"><h3 class="sec-title">🏆 総合評価</h3>`; }
+          else if (line.includes('7. 改善'))           { html+=`<div class="section-card card-improved"><h3 class="sec-title">✨ 改善例文</h3>`; }
+          else { html+=`<div class="section-card"><h3 class="sec-title">${esc.substring(3)}</h3>`; }
+        } else if (line.startsWith('- ')) {
+          html += `<div class="list-item">${esc.substring(2)}</div>`;
+        } else { html += `<p>${esc}</p>`; }
+      }
+      if (inCard) html += '</div>';
+      return html;
+    }
+
+    function parseSummaryFeedback(text) {
+      if (!text) return "まだ添削されていません。";
+      const lines = text.split('\n');
+      let html = '', inCard = false;
+      for (let line of lines) {
+        line = line.trim(); if (line === '') continue;
+        let esc = escapeHtml(line);
+        if (line.startsWith('## ')) {
+          if (inCard) html += '</div>'; inCard = true;
+          const scoreMatch = line.match(/:\s*(\[?[\d\s\/点]+\]?)/);
+          const s = scoreMatch ? escapeHtml(scoreMatch[0].replace(':','').trim()) : '';
+          if      (line.includes('0. 事前チェック'))    { html+=`<div class="section-card card-precheck"><h3 class="sec-title">🔍 事前チェック結果</h3>`; }
+          else if (line.includes('1. 内容'))            { html+=`<div class="section-card card-c1"><h3 class="sec-title">🎯 内容 Content <span class="score-badge">${s}</span></h3>`; }
+          else if (line.includes('2. 構成'))            { html+=`<div class="section-card card-c3"><h3 class="sec-title">🔗 構成 Structure <span class="score-badge">${s}</span></h3>`; }
+          else if (line.includes('3. 語彙'))            { html+=`<div class="section-card card-c4"><h3 class="sec-title">📚 語彙 Vocabulary <span class="score-badge">${s}</span></h3>`; }
+          else if (line.includes('4. 文法'))            { html+=`<div class="section-card card-c2"><h3 class="sec-title">✏️ 文法 Grammar <span class="score-badge">${s}</span></h3>`; }
+          else if (line.includes('5. 合計点'))          { html+=`<div class="section-card card-total"><h3 class="sec-title">🏆 総合評価</h3>`; }
+          else if (line.includes('6. フィードバック'))  { html+=`<div class="section-card card-correction"><h3 class="sec-title">🛠️ 改善アドバイス</h3>`; }
+          else if (line.includes('7. 良かった点'))      { html+=`<div class="section-card card-good"><h3 class="sec-title">⭐ 良かった点</h3>`; }
+          else if (line.includes('8. 改善要約例'))      { html+=`<div class="section-card card-improved"><h3 class="sec-title">✨ 改善要約例</h3>`; }
+          else { html+=`<div class="section-card"><h3 class="sec-title">${esc.substring(3)}</h3>`; }
+        } else if (line.startsWith('- ')) {
+          let content = esc.substring(2);
+          if (content.includes('範囲内')) content = content.replace('範囲内', '<span class="flag-ok">✓ 範囲内</span>');
+          else if (content.includes('超過') || content.includes('不足')) content = content.replace(/(超過|不足|大幅不足)/, '<span class="flag-ng">⚠ $1</span>');
+          if (content.includes('問題なし')) content = content.replace('問題なし', '<span class="flag-ok">✓ 問題なし</span>');
+          else if (content.includes('要注意') || content.includes('フラグあり')) content = content.replace(/(要注意箇所あり|構成不備フラグあり)/, '<span class="flag-ng">⚠ $1</span>');
+          html += `<div class="list-item">${content}</div>`;
+        } else { html += `<p>${esc}</p>`; }
+      }
+      if (inCard) html += '</div>';
+      return html;
+    }
+
+    document.getElementById('schoolCodeInput').addEventListener('keypress', e => { if (e.key==='Enter') document.getElementById('passwordInput').focus(); });
+    document.getElementById('passwordInput').addEventListener('keypress', e => { if (e.key==='Enter') doLogin(); });
+    ['filterName','filterSeat','filterGrade','filterClass','filterType','filterTopicSelect','filterTopicText'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener(['filterGrade','filterClass','filterType','filterTopicSelect'].includes(id) ? 'change' : 'input', renderTable);
+    });
+  </script>
+</body>
+</html>
