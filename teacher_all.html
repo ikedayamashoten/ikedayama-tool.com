@@ -115,6 +115,22 @@
     .flag-ok { display:inline-block; background:#e8f5e9; color:#2e7d32; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:bold; }
     .flag-ng { display:inline-block; background:#ffebee; color:#c62828; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:bold; }
     .hide { display:none !important; }
+    .cfg-card { background:white; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); padding:24px 28px; margin-bottom:20px; }
+    .cfg-card h3 { margin:0 0 6px; color:var(--main); font-size:16px; }
+    .cfg-desc { font-size:12px; color:#888; margin:0 0 18px; }
+    .cfg-warn { background:#fff8e1; border-left:4px solid #f9a825; border-radius:8px; padding:12px 16px; font-size:12.5px; color:#7a5c00; margin-bottom:20px; line-height:1.7; }
+    .cfg-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:8px; }
+    .cfg-grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:12px; }
+    .cfg-grid label, .cfg-grid3 label { font-size:12px; font-weight:bold; color:#555; margin-bottom:4px; display:block; }
+    .cfg-grid input, .cfg-grid3 input, .cfg-card select, .cfg-card textarea { width:100%; box-sizing:border-box; }
+    .cfg-total { font-size:13px; color:var(--main); font-weight:bold; margin:4px 0 18px; }
+    .cfg-row { margin-bottom:16px; }
+    .cfg-row > label { font-size:12px; font-weight:bold; color:#555; margin-bottom:4px; display:block; }
+    .cfg-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .cfg-msg { font-size:13px; font-weight:bold; display:none; }
+    .cfg-ok { color:#27ae60; }
+    .cfg-ng { color:#d93025; }
+    @media (max-width:700px){ .cfg-grid { grid-template-columns:repeat(2,1fr); } .cfg-grid3 { grid-template-columns:1fr; } }
   </style>
 </head>
 <body class="mode-essay">
@@ -155,6 +171,7 @@
         <div class="tab-row">
           <button class="tab-btn active" id="innerTabData" onclick="switchTab('submissions')">📊 提出一覧</button>
           <button class="tab-btn" id="innerTabAssign" onclick="switchTab('assignments')">📋 課題管理</button>
+          <button class="tab-btn" id="innerTabConfig" onclick="switchTab('config')">⚙️ 採点設定</button>
         </div>
 
         <div id="filterArea">
@@ -241,6 +258,66 @@
           </div>
         </div>
       </div>
+
+      <div id="tabContent-config" style="display:none">
+        <div class="cfg-card">
+          <h3 id="cfgTitle">⚙️ 採点設定</h3>
+          <p class="cfg-desc" id="cfgDesc">この学校の採点基準を変更できます。</p>
+
+          <div class="cfg-warn">
+            ⚠️ <strong>配点を変更すると、これ以降に提出された分から新しい配点で採点されます。</strong><br>
+            すでに採点済みのデータの点数は変わりません。満点が変わると、過去の点数と単純に比較できなくなるためご注意ください。
+          </div>
+
+          <label style="font-size:13px;font-weight:bold;color:#555;margin-bottom:8px;display:block">配点</label>
+          <div class="cfg-grid" id="cfgScoreGrid"></div>
+          <div class="cfg-total" id="cfgTotal">合計：－</div>
+
+          <div class="cfg-grid3" id="cfgSummaryExtra" style="display:none">
+            <div>
+              <label>語数の下限</label>
+              <input type="number" id="cfgWordMin" min="0">
+            </div>
+            <div>
+              <label>語数の上限</label>
+              <input type="number" id="cfgWordMax" min="0">
+            </div>
+            <div>
+              <label>原文の段落数</label>
+              <input type="number" id="cfgParagraph" min="1">
+            </div>
+          </div>
+
+          <div class="cfg-row" id="cfgWordLimitRow" style="display:none">
+            <label>語数制限ペナルティ</label>
+            <select id="cfgWordLimit">
+              <option value="false">なし（標準）</option>
+              <option value="true">あり（65語以下0点・66〜72語3点減点）</option>
+            </select>
+          </div>
+
+          <div class="cfg-row">
+            <label>フィードバックのトーン</label>
+            <select id="cfgTone">
+              <option value="standard">標準（バランス型）</option>
+              <option value="gentle">優しめ（励まし重視）</option>
+              <option value="strict">厳しめ（ミスを率直に指摘）</option>
+            </select>
+          </div>
+
+          <div class="cfg-row">
+            <label>特別指示（採点AIへの追加指示・任意）</label>
+            <textarea id="cfgNote" rows="5" placeholder="例：英検2級レベルの語彙を基準に採点してください"></textarea>
+          </div>
+
+          <div class="cfg-actions">
+            <button class="btn" onclick="saveConfig()" id="cfgSaveBtn">💾 保存する</button>
+            <button class="btn-back" style="margin-bottom:0" onclick="loadConfig()">↩️ 変更を取り消す</button>
+            <span class="cfg-msg cfg-ok" id="cfgOk">✅ 保存しました</span>
+            <span class="cfg-msg cfg-ng" id="cfgNg"></span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -268,9 +345,27 @@
     };
 
     const SYS = {
-      essay:       { proj:'essay',  label:'✏️ 英作文 ダッシュボード',            dataAction:'teacher_data',         topicLabel:'お題',           answerLabel:'提出した英作文', assignLabel:'お題',            csv:'英作文_添削データ.csv' },
-      translation: { proj:'wayaku', label:'📝 和文英訳・英文和訳 ダッシュボード', dataAction:'teacher_data',         topicLabel:'原文',           answerLabel:'提出した解答',   assignLabel:'問題文',          csv:'和文英訳_添削データ.csv' },
-      summary:     { proj:'wayaku', label:'📖 要約 ダッシュボード',              dataAction:'teacher_data_summary', topicLabel:'原文（要約対象）', answerLabel:'提出した要約',   assignLabel:'原文（要約対象）', csv:'要約_添削データ.csv' },
+      essay: {
+        proj:'essay', label:'✏️ 英作文 ダッシュボード', dataAction:'teacher_data',
+        topicLabel:'お題', answerLabel:'提出した英作文', assignLabel:'お題', csv:'英作文_添削データ.csv',
+        scoreKey:'maxScores', toneKey:'feedbackTone', noteKey:'feedbackNote',
+        fields:[ {k:'content',n:'内容・構成面',d:15}, {k:'conditions',n:'条件面',d:5},
+                 {k:'grammar',n:'文法・正確性',d:15}, {k:'vocabulary',n:'語彙・表現力',d:5} ],
+      },
+      translation: {
+        proj:'wayaku', label:'📝 和文英訳・英文和訳 ダッシュボード', dataAction:'teacher_data',
+        topicLabel:'原文', answerLabel:'提出した解答', assignLabel:'問題文', csv:'和文英訳_添削データ.csv',
+        scoreKey:'translationMaxScores', toneKey:'translationFeedbackTone', noteKey:'translationFeedbackNote',
+        fields:[ {k:'meaning',n:'意味の正確さ',d:40}, {k:'grammar',n:'文法・正確性',d:25},
+                 {k:'vocabulary',n:'語彙の適切さ',d:20}, {k:'natural',n:'自然な表現',d:15} ],
+      },
+      summary: {
+        proj:'wayaku', label:'📖 要約 ダッシュボード', dataAction:'teacher_data_summary',
+        topicLabel:'原文（要約対象）', answerLabel:'提出した要約', assignLabel:'原文（要約対象）', csv:'要約_添削データ.csv',
+        scoreKey:'summaryMaxScores', toneKey:'summaryFeedbackTone', noteKey:'summaryFeedbackNote',
+        fields:[ {k:'content',n:'内容 Content',d:4}, {k:'structure',n:'構成 Structure',d:4},
+                 {k:'vocabulary',n:'語彙 Vocabulary',d:4}, {k:'grammar',n:'文法 Grammar',d:4} ],
+      },
     };
 
     let allData = [];
@@ -360,17 +455,22 @@
       ['filterName','filterSeat','filterTopicText'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('filterType').value = '';
       allData = [];
-      if (currentTab === 'submissions') loadData(); else loadAssignments();
+      if (currentTab === 'submissions') loadData();
+      else if (currentTab === 'assignments') loadAssignments();
+      else loadConfig();
     }
 
     function switchTab(tab) {
       currentTab = tab;
       document.getElementById('innerTabData').classList.toggle('active', tab === 'submissions');
       document.getElementById('innerTabAssign').classList.toggle('active', tab === 'assignments');
+      document.getElementById('innerTabConfig').classList.toggle('active', tab === 'config');
       document.getElementById('tabContent-submissions').style.display = tab === 'submissions' ? 'block' : 'none';
       document.getElementById('tabContent-assignments').style.display = tab === 'assignments' ? 'block' : 'none';
+      document.getElementById('tabContent-config').style.display      = tab === 'config'      ? 'block' : 'none';
       document.getElementById('filterArea').style.display = tab === 'submissions' ? 'block' : 'none';
       if (tab === 'assignments') loadAssignments();
+      if (tab === 'config') loadConfig();
     }
 
     async function loadData() {
@@ -609,6 +709,128 @@
       const a    = document.createElement('a');
       a.href = url; a.download = cfg().csv; a.click();
       URL.revokeObjectURL(url);
+    }
+
+
+    // ===== 採点設定 =====
+    let currentConfig = {};
+
+    function buildScoreInputs() {
+      const grid = document.getElementById('cfgScoreGrid');
+      grid.innerHTML = cfg().fields.map(f =>
+        `<div>
+           <label>${f.n}</label>
+           <input type="number" id="cfgScore_${f.k}" min="0" oninput="updateCfgTotal()">
+         </div>`
+      ).join('');
+    }
+
+    function updateCfgTotal() {
+      let t = 0;
+      cfg().fields.forEach(f => {
+        const el = document.getElementById('cfgScore_' + f.k);
+        t += el ? (parseInt(el.value) || 0) : 0;
+      });
+      document.getElementById('cfgTotal').textContent = '合計：' + t + '点満点';
+    }
+
+    async function loadConfig() {
+      const c = cfg();
+      const sysName = { essay:'英作文', translation:'和文英訳・英文和訳', summary:'要約' }[currentSystem];
+      document.getElementById('cfgTitle').textContent = '⚙️ ' + sysName + ' の採点設定';
+      document.getElementById('cfgDesc').textContent  = sysName + 'の採点基準を変更できます。変更内容はこの学校のみに適用されます。';
+      document.getElementById('cfgSummaryExtra').style.display = currentSystem === 'summary' ? 'grid' : 'none';
+      document.getElementById('cfgWordLimitRow').style.display = currentSystem === 'essay' ? 'block' : 'none';
+      document.getElementById('cfgOk').style.display = 'none';
+      document.getElementById('cfgNg').style.display = 'none';
+      buildScoreInputs();
+
+      try {
+        const j = await api(c.proj, { action:'teacher_config', code: currentSchoolCode, password: currentSchoolPass });
+        if (!j.ok) throw new Error(j.error || '取得に失敗しました');
+        currentConfig = j.config || {};
+        const ms = currentConfig[c.scoreKey] || {};
+        c.fields.forEach(f => {
+          const el = document.getElementById('cfgScore_' + f.k);
+          if (el) el.value = (ms[f.k] !== undefined && ms[f.k] !== null) ? ms[f.k] : f.d;
+        });
+        updateCfgTotal();
+        document.getElementById('cfgTone').value = currentConfig[c.toneKey] || 'standard';
+        document.getElementById('cfgNote').value = currentConfig[c.noteKey] || '';
+        if (currentSystem === 'summary') {
+          document.getElementById('cfgWordMin').value   = currentConfig.summaryWordCountMin ?? 60;
+          document.getElementById('cfgWordMax').value   = currentConfig.summaryWordCountMax ?? 80;
+          document.getElementById('cfgParagraph').value = currentConfig.summaryParagraphCount ?? 3;
+        }
+        if (currentSystem === 'essay') {
+          document.getElementById('cfgWordLimit').value = currentConfig.useWordLimit ? 'true' : 'false';
+        }
+      } catch(e) {
+        showCfgError('読み込みエラー: ' + e.message);
+      }
+    }
+
+    function showCfgError(msg) {
+      const ng = document.getElementById('cfgNg');
+      ng.textContent = msg; ng.style.display = 'inline';
+      document.getElementById('cfgOk').style.display = 'none';
+    }
+
+    async function saveConfig() {
+      const c = cfg();
+      document.getElementById('cfgOk').style.display = 'none';
+      document.getElementById('cfgNg').style.display = 'none';
+
+      const scores = {};
+      let total = 0, invalid = false;
+      c.fields.forEach(f => {
+        const v = parseInt(document.getElementById('cfgScore_' + f.k).value);
+        if (isNaN(v) || v < 0) invalid = true;
+        scores[f.k] = isNaN(v) ? f.d : v;
+        total += scores[f.k];
+      });
+      if (invalid) { showCfgError('配点には0以上の数字を入力してください'); return; }
+      if (total === 0) { showCfgError('合計が0点になっています。配点を見直してください'); return; }
+
+      const oldMs = currentConfig[c.scoreKey] || {};
+      const oldTotal = c.fields.reduce((sum,f) => sum + (oldMs[f.k] ?? f.d), 0);
+      let msg = `採点設定を保存します。\n\n新しい合計：${total}点満点`;
+      if (oldTotal !== total) {
+        msg += `\n（現在は${oldTotal}点満点）\n\n⚠️ 満点が変わります。これ以降の提出分から新しい配点で採点され、過去の点数とは基準が変わります。`;
+      }
+      msg += '\n\nよろしいですか？';
+      if (!confirm(msg)) return;
+
+      const payload = {};
+      payload[c.scoreKey] = scores;
+      payload[c.toneKey]  = document.getElementById('cfgTone').value;
+      payload[c.noteKey]  = document.getElementById('cfgNote').value.trim();
+      if (currentSystem === 'summary') {
+        payload.summaryWordCountMin   = parseInt(document.getElementById('cfgWordMin').value) || 60;
+        payload.summaryWordCountMax   = parseInt(document.getElementById('cfgWordMax').value) || 80;
+        payload.summaryParagraphCount = parseInt(document.getElementById('cfgParagraph').value) || 3;
+      }
+      if (currentSystem === 'essay') {
+        payload.useWordLimit = document.getElementById('cfgWordLimit').value === 'true';
+      }
+
+      const btn = document.getElementById('cfgSaveBtn');
+      btn.disabled = true; btn.textContent = '保存中...';
+      try {
+        const j = await api(c.proj, {
+          action:'teacher_config_save', code: currentSchoolCode,
+          password: currentSchoolPass, config: payload
+        });
+        if (!j.ok) throw new Error(j.error || '保存に失敗しました');
+        currentConfig = Object.assign({}, currentConfig, payload);
+        const ok = document.getElementById('cfgOk');
+        ok.style.display = 'inline';
+        setTimeout(() => { ok.style.display = 'none'; }, 4000);
+      } catch(e) {
+        showCfgError('保存エラー: ' + e.message);
+      } finally {
+        btn.disabled = false; btn.textContent = '💾 保存する';
+      }
     }
 
     function extractScoreNum(feedback) {
